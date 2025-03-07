@@ -51,9 +51,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
     'users',
-    'teams',
     'games',
-    'rounds'
 ]
 
 MIDDLEWARE = [
