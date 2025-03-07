@@ -82,3 +82,9 @@ class LogoutView(APIView):
         }
         
         return response
+    
+class UserListView(APIView):
+    def get(self, request):
+        users = User.objects.all().values('id', 'username')
+        user_list = [{'user_id': user['id'], 'username': user['username']} for user in users]
+        return Response(user_list)
