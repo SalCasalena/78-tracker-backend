@@ -20,12 +20,19 @@ class Game(models.Model):
         ('Competitive', 'Competitive'),
         ('IFC', 'IFC'),
     ]
+    STATUS_CHOICES = [
+        ('Not-Started', 'Not-Started'),
+        ('In-Progress', 'In-Progress'),
+        ('Completed', 'Completed'),
+    ]
     
     team1 = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="game_team1")
     team2 = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="game_team2")
     team_size = models.IntegerField(choices=[(3, "3"), (4, "4"), (5, "5"), (6, "6")])
     gamemode = models.CharField(max_length=20, choices=GAMEMODE_CHOICES)
     created_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="Not-Started")
+    
     
     def __str__(self):
         formatted_time = self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else "Unknown Time"
