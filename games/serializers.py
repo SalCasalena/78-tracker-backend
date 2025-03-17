@@ -98,8 +98,10 @@ class PlayerStatsSerializer(serializers.ModelSerializer):
             "score"
             ]
         
-class LeaderboardSerializer(serializers.ModelSerializer):
-    player_name = serializers.CharField(source="player.username")
+from rest_framework import serializers
+
+class LeaderboardSerializer(serializers.Serializer):  # Use Serializer, not ModelSerializer
+    player_name = serializers.CharField()  # Directly provide the player name
     games_played = serializers.IntegerField()
     total_cups_made = serializers.IntegerField()
     average_accuracy = serializers.FloatField()

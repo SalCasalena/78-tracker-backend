@@ -234,10 +234,10 @@ class LeaderboardView(APIView):
     """Leaderboard view that aggregates player stats across all games."""
 
     def get(self, request):
-        # Aggregate stats across all games for each player
+        # Aggregate player stats across all games
         leaderboard_data = (
             PlayerStats.objects
-            .values("player")  # Group by player
+            .values("player")  # Group by player ID
             .annotate(
                 games_played=Count("game", distinct=True),
                 total_cups_made=Sum("cups_made"),
@@ -245,13 +245,14 @@ class LeaderboardView(APIView):
                 total_death_cups=Sum("death_cups"),
                 average_rating=Avg("score")
             )
-            .order_by("-average_rating")  # Sort leaderboard by highest rating
+            .order_by("-average_rating")  # Sort by highest rating
         )
 
-        # Attach player names
+        # Replace player ID with username
         for entry in leaderboard_data:
-            entry["player"] = User.objects.get(id=entry["player"]).username
+            entry["player_name"] = User.objects.get(id=entry["player"]).username  # Get player name
+            del entry["player"]  # Remove the ID field
 
-        # Serialize data
+        # Serialize and return response
         serializer = LeaderboardSerializer(leaderboard_data, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
