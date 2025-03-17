@@ -19,6 +19,7 @@ class GameListSerializer(serializers.ModelSerializer):
 
 class GameStateSerializer(serializers.ModelSerializer):
     player_stats = serializers.SerializerMethodField()
+    winner = serializers.CharField(source="winner.team_name")
 
     class Meta:
         model = Game
