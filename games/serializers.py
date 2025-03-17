@@ -5,6 +5,16 @@ class RoundSerializer(serializers.ModelSerializer):
     class Meta:
         model = Round
         fields = ['id', 'game', 'round_number', 'cups']
+        
+class GameListSerializer(serializers.ModelSerializer):
+    team1_name = serializers.CharField(source="team1.team_name")
+    team2_name = serializers.CharField(source="team2.team_name")
+    date = serializers.DateTimeField(source="created_at" ,format="%Y-%m-%d %H:%M:%S")
+
+    class Meta:
+        model = Game
+        fields = ["id", "date", "status", "team1_name", "team2_name",]
+
 
 class GameStateSerializer(serializers.ModelSerializer):
     player_stats = serializers.SerializerMethodField()
@@ -83,6 +93,6 @@ class PlayerStatsSerializer(serializers.ModelSerializer):
         fields = [
             "shots_taken", "cups_made", 
             "own_cups", "accuracy",
-            "death_cups", "clutch_cups"
+            "death_cups", "clutch_cups",
             "score"
             ]

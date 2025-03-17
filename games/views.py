@@ -1,9 +1,9 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, generics
 from django.db import transaction
 from .models import User, Team, Game, Round, PlayerStats
-from .serializers import GameStateSerializer, RoundResponseSerializer
+from .serializers import GameStateSerializer, RoundResponseSerializer, GameListSerializer
 from rest_framework.exceptions import ValidationError
 
 class GameStateView(APIView):
@@ -92,6 +92,11 @@ class CreateGameView(APIView):
         team.save()
         return team
 
+class AllGamesView(generics.ListAPIView):
+    """Retrieve a list of all games."""
+    queryset = Game.objects.all()
+    serializer_class = GameListSerializer
+
 class NewRoundView(APIView):
     def post(self, request, game_id):
         # Extract & Validate Game Data
@@ -135,9 +140,14 @@ class NewRoundView(APIView):
         updated_cups.update(cups)
         game.cups = updated_cups
         
-        # Chec if the game is completed
-        if len(updated_cups) >= 78:
+        # Check if the game is completed
+        if game.teamB_cups_remaining == 0:
             game.status = "Completed"
+            game.winner = game.team2
+        if game.teamA_cups_remaining == 0:
+            game.status = "Completed"
+            game.winner = game.team1
+
 
         # **Ensure PlayerStats exists for all players**
         all_players = [

@@ -48,7 +48,8 @@ class Game(models.Model):
     teamB_cups_remaining = models.IntegerField(default=78)
     
     # Game State
-    cups = models.JSONField(default=dict)  
+    cups = models.JSONField(default=dict)
+    winner = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True, blank=True, related_name="game_winner")
 
     def __str__(self):
         return f"{self.team1} vs {self.team2} | {self.status}"
