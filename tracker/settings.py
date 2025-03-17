@@ -29,7 +29,13 @@ SECRET_KEY = env.str("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DEBUG", default=False)
 
-ALLOWED_HOSTS = [".herokuapp.com", "localhost", "127.0.0.1"]
+ALLOWED_HOSTS = [
+    ".herokuapp.com", 
+    "localhost", 
+    "127.0.0.1",
+    "api.seventyeight.life",
+    "seventyeight.life",
+]
 
 
 # Application definition
@@ -45,9 +51,11 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
     'users',
+    'games',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
@@ -122,9 +130,44 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 AUTH_USER_MODEL = 'users.User'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_HEADERS = True
+CORS_ALLOW_METHODS = ["GET", "POST", "OPTIONS"]
+
+CORS_ALLOWED_ORIGINS = [
+    "https://seventyeight.life",
+    "https://api.seventyeight.life",
+    "http://localhost:3000",
+]
+
+CSRF_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_SECURE = True
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://seventyeight.life",
+    "https://api.seventyeight.life",
+    "http://localhost:3000",
+]
+
+# For your JWT cookie (if custom-set):
+SIMPLE_JWT = {
+    'AUTH_COOKIE': 'jwt',
+    'AUTH_COOKIE_DOMAIN': None,  # Optional: Use a specific domain if needed
+    'AUTH_COOKIE_SECURE': True,
+    'AUTH_COOKIE_HTTP_ONLY': True,
+    'AUTH_COOKIE_PATH': '/',
+    'AUTH_COOKIE_SAMESITE': 'None',  # Critical for cross-origin
+}
+
+SESSION_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SECURE = True
+

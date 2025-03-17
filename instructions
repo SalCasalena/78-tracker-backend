@@ -1,5 +1,22 @@
+** Local Deployment **
 deactivate
 rm -rf venv
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+python3 manage.py runserver # launches server
+python3 manage.py createsuperuser # create superuser
+
+
+
+** Update DB Models**
+heroku run python manage.py makemigrations
+heroku run python manage.py migrate
+
+**Super User**
+username: Pledgident
+email: salcasalena@gmail.com
+password: LEDN1852
+
+heroku run <python3 command>
+heroku run python manage.py createsuperuser
