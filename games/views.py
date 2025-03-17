@@ -224,7 +224,7 @@ class NewRoundView(APIView):
         )
 
         # Save the updated game state
-        game.save()
+        game.save() # updates status
         
         # **Use Serializer to Build Response Data**
         serializer = RoundResponseSerializer(new_round)

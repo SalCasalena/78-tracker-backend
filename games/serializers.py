@@ -77,6 +77,7 @@ class RoundResponseSerializer(serializers.ModelSerializer):
     teamA_rack_status = serializers.CharField(source='game.teamA_rack_status')
     teamB_rack_status = serializers.CharField(source='game.teamB_rack_status')
     player_stats = serializers.SerializerMethodField()
+    status = serializers.CharField(source='game.status')
 
     class Meta:
         model = Round
@@ -85,7 +86,7 @@ class RoundResponseSerializer(serializers.ModelSerializer):
             "teamA_cups_made", "teamB_cups_made",
             "teamA_cups_remaining", "teamB_cups_remaining",
             "teamA_rack_status", "teamB_rack_status",
-            "player_stats"
+            "player_stats", "status"
         ]
         
     def get_player_stats(self, obj):
@@ -94,17 +95,17 @@ class RoundResponseSerializer(serializers.ModelSerializer):
         return {str(stat.player.pk): PlayerStatsSerializer(stat).data for stat in player_stats}
 
 class PlayerStatsSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source="player.username")
     class Meta:
         model = PlayerStats
         fields = [
+            "username",
             "shots_taken", "cups_made", 
             "own_cups", "accuracy",
             "death_cups", "clutch_cups",
             "score"
             ]
         
-from rest_framework import serializers
-
 class LeaderboardSerializer(serializers.Serializer):  # Use Serializer, not ModelSerializer
     player_name = serializers.CharField()  # Directly provide the player name
     games_played = serializers.IntegerField()
