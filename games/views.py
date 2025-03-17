@@ -3,7 +3,8 @@ from rest_framework.response import Response
 from rest_framework import status, generics
 from django.db import transaction
 from .models import User, Team, Game, Round, PlayerStats
-from .serializers import GameStateSerializer, RoundResponseSerializer, GameListSerializer
+from .serializers import GameStateSerializer, RoundResponseSerializer, GameListSerializer, LeaderboardSerializer
+from django.db.models import Count, Sum, Avg
 from rest_framework.exceptions import ValidationError
 
 class GameStateView(APIView):
@@ -228,3 +229,29 @@ class NewRoundView(APIView):
         # **Use Serializer to Build Response Data**
         serializer = RoundResponseSerializer(new_round)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+class LeaderboardView(APIView):
+    """Leaderboard view that aggregates player stats across all games."""
+
+    def get(self, request):
+        # Aggregate stats across all games for each player
+        leaderboard_data = (
+            PlayerStats.objects
+            .values("player")  # Group by player
+            .annotate(
+                games_played=Count("game", distinct=True),
+                total_cups_made=Sum("cups_made"),
+                average_accuracy=Avg("accuracy"),
+                total_death_cups=Sum("death_cups"),
+                average_rating=Avg("score")
+            )
+            .order_by("-average_rating")  # Sort leaderboard by highest rating
+        )
+
+        # Attach player names
+        for entry in leaderboard_data:
+            entry["player"] = User.objects.get(id=entry["player"]).username
+
+        # Serialize data
+        serializer = LeaderboardSerializer(leaderboard_data, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

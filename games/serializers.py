@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Round, Game, PlayerStats
+from users.models import User
 
 class RoundSerializer(serializers.ModelSerializer):
     class Meta:
@@ -96,3 +97,15 @@ class PlayerStatsSerializer(serializers.ModelSerializer):
             "death_cups", "clutch_cups",
             "score"
             ]
+        
+class LeaderboardSerializer(serializers.ModelSerializer):
+    player_name = serializers.CharField(source="player.username")
+    games_played = serializers.IntegerField()
+    total_cups_made = serializers.IntegerField()
+    average_accuracy = serializers.FloatField()
+    total_death_cups = serializers.IntegerField()
+    average_rating = serializers.FloatField()
+
+    class Meta:
+        model = User
+        fields = ["id", "player_name", "games_played", "total_cups_made", "average_accuracy", "total_death_cups", "average_rating"]
