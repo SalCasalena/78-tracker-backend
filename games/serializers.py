@@ -84,4 +84,5 @@ class PlayerStatsSerializer(serializers.ModelSerializer):
             "shots_taken", "cups_made", 
             "own_cups", "accuracy",
             "death_cups", "clutch_cups"
+            "score"
             ]

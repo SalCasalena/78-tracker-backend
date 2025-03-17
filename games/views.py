@@ -103,6 +103,10 @@ class NewRoundView(APIView):
         # **Update game status if this is the first round**
         if game.status == "Not-Started":
             game.status = "In-Progress"
+            
+        # Make sure the game is not completed
+        if game.status == "Completed":
+            return Response({"error": "Game is already completed."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Extract & Validate Cup Data
         data = request.data
@@ -130,6 +134,10 @@ class NewRoundView(APIView):
         updated_cups = game.cups.copy()
         updated_cups.update(cups)
         game.cups = updated_cups
+        
+        # Chec if the game is completed
+        if len(updated_cups) >= 78:
+            game.status = "Completed"
 
         # **Ensure PlayerStats exists for all players**
         all_players = [

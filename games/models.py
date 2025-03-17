@@ -83,8 +83,8 @@ class Game(models.Model):
         self.teamB_cups_remaining = 78 - teamB_made  # Team A makes a shot, reducing Team B's remaining cups
 
         # Update rack status automatically
-        self.teamA_rack_status = self.determine_rack_status(self.teamA_cups_remaining)
-        self.teamB_rack_status = self.determine_rack_status(self.teamB_cups_remaining)
+        # self.teamA_rack_status = self.determine_rack_status(self.teamA_cups_remaining)
+        # self.teamB_rack_status = self.determine_rack_status(self.teamB_cups_remaining)
     
     def save(self, *args, **kwargs):
         """Override save method to automatically process game stats."""
@@ -106,7 +106,7 @@ class Round(models.Model):
 
 class PlayerStats(models.Model):
     player = models.ForeignKey(User, on_delete=models.CASCADE, related_name="player_stats")
-    game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name="game_stats")
+    game = models.ForeignKey("Game", on_delete=models.CASCADE, related_name="game_stats")
     
     # Individual Player Statistics
     shots_taken = models.IntegerField(default=0)
@@ -116,14 +116,70 @@ class PlayerStats(models.Model):
     
     death_cups = models.IntegerField(default=0)
     clutch_cups = models.IntegerField(default=0)
+    
+    score = models.DecimalField(max_digits=4, decimal_places=2, default=0.0)
 
-    class Meta:
-        unique_together = ('player', 'game')  # Prevents duplicate player stats per game
+    def calculate_score(self):
+        """Calculate HLTV 2.0 inspired rating for beer pong performance with team normalization."""
+        
+        # **Weights for Each Factor**
+        W_PLAYER_IMPACT = 1.2   # Player's share of total cups made
+        W_CLUTCH_CUPS = 0.15    # Clutch Cups bonus
+        W_OWN_CUPS = 0.40       # Own Cups penalty (more severe now)
+
+        # **Baseline Score**
+        score = 1.00
+
+        # **Get Total Team Cups Made**
+        team_cups_made = self.get_team_total_cups()
+        team_size = self.get_team_size()
+
+        # **Normalize Player's Contribution to the Team**
+        player_impact = (self.cups_made / team_cups_made) if team_cups_made > 0 else 0
+
+        # **Positive Contributions**
+        score += W_PLAYER_IMPACT * player_impact  # Player's percentage contribution
+        score += W_CLUTCH_CUPS * self.clutch_cups
+
+        # **Exponential Impact for Death Cups**
+        if self.death_cups > 0:
+            score += (1.5 ** self.death_cups) - 1  # Exponential scaling
+
+        # **Negative Contributions**
+        score -= W_OWN_CUPS * self.own_cups
+
+        # **Ensure score stays within 0.00 to 2.00 range**
+        score = max(0.00, min(2.00, score))
+
+        return round(score, 2)
+
+    def get_team_total_cups(self):
+        """Retrieve the total number of cups made by this player's team."""
+        game = self.game
+        if self.player in [game.team1.player1, game.team1.player2, game.team1.player3, game.team1.player4, game.team1.player5, game.team1.player6]:
+            return game.teamA_cups_made
+        else:
+            return game.teamB_cups_made
+
+    def get_team_size(self):
+        """Determine the number of active players on the player's team."""
+        game = self.game
+        team_players = [
+            game.team1.player1, game.team1.player2, game.team1.player3,
+            game.team1.player4, game.team1.player5, game.team1.player6
+        ] if self.player in [
+            game.team1.player1, game.team1.player2, game.team1.player3,
+            game.team1.player4, game.team1.player5, game.team1.player6
+        ] else [
+            game.team2.player1, game.team2.player2, game.team2.player3,
+            game.team2.player4, game.team2.player5, game.team2.player6
+        ]
+        return len([p for p in team_players if p is not None])  # Count only actual players
 
     def save(self, *args, **kwargs):
-        """Automatically update accuracy on save."""
-        self.accuracy = (self.cups_made / self.shots_taken * 100) if self.shots_taken > 0 else 0
+        """Override save to auto-update the score before saving."""
+        self.score = self.calculate_score()
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.player.username}[{self.pk}] [Game: {self.game.id}] {self.cups_made} | {self.shots_taken} | {self.accuracy}%"
+        return f"{self.player.username} - Game {self.game.id}: Score {self.score}"
