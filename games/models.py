@@ -86,10 +86,20 @@ class Game(models.Model):
         # Update rack status automatically
         # self.teamA_rack_status = self.determine_rack_status(self.teamA_cups_remaining)
         # self.teamB_rack_status = self.determine_rack_status(self.teamB_cups_remaining)
+        
+    def check_winner(self):
+        if self.teamB_cups_remaining == 0:
+            self.status = "Completed"
+            self.gamewinner = self.team2
+        if self.teamA_cups_remaining == 0:
+            self.status = "Completed"
+            self.winner = self.team1
+
     
     def save(self, *args, **kwargs):
         """Override save method to automatically process game stats."""
         self.process_game_stats()
+        self.check_winner()
         super().save(*args, **kwargs)
 
         

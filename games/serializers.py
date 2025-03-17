@@ -13,7 +13,7 @@ class GameListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Game
-        fields = ["id", "date", "status", "team1_name", "team2_name",]
+        fields = ["id", "date", "status", "team1_name", "team2_name", "winner"]
 
 
 class GameStateSerializer(serializers.ModelSerializer):
@@ -25,7 +25,7 @@ class GameStateSerializer(serializers.ModelSerializer):
             "id", "status", "teamA_rack_status", "teamB_rack_status",
             "teamA_cups_made", "teamB_cups_made",
             "teamA_cups_remaining", "teamB_cups_remaining",
-            "cups", "player_stats"
+            "cups", "player_stats", "winner"
         ]
 
     def get_player_stats(self, obj):

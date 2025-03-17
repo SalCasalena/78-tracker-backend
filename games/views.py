@@ -140,15 +140,6 @@ class NewRoundView(APIView):
         updated_cups.update(cups)
         game.cups = updated_cups
         
-        # Check if the game is completed
-        if game.teamB_cups_remaining == 0:
-            game.status = "Completed"
-            game.winner = game.team2
-        if game.teamA_cups_remaining == 0:
-            game.status = "Completed"
-            game.winner = game.team1
-
-
         # **Ensure PlayerStats exists for all players**
         all_players = [
             game.team1.player1, game.team1.player2, game.team1.player3,
@@ -222,8 +213,6 @@ class NewRoundView(APIView):
                 except User.DoesNotExist:
                     continue
             
-        
-
         # Create a new round record
         new_round = Round.objects.create(
             game=game,
@@ -235,7 +224,7 @@ class NewRoundView(APIView):
 
         # Save the updated game state
         game.save()
-
+        
         # **Use Serializer to Build Response Data**
         serializer = RoundResponseSerializer(new_round)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
