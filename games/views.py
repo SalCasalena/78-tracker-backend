@@ -107,6 +107,7 @@ class NewRoundView(APIView):
         # Extract & Validate Cup Data
         data = request.data
         cups = data.get('gamestate', {}).get('cups', {})  # {cup_number: player_id}
+        deathcups = data.get('gamestate', {}).get('deathcups', [])  # {cup_number: player_id}
 
         if not cups:
             return Response({"error": "Cup data is required."}, status=status.HTTP_400_BAD_REQUEST)
@@ -145,6 +146,9 @@ class NewRoundView(APIView):
             player_stats.save()
 
         # **Process Individual Player Stats (Only If They Hit a Cup)**
+        teamA_cup_hitters = []
+        teamB_cup_hitters = []
+        
         for cup, player_id in cups.items():
             try:
                 player = User.objects.get(pk=player_id)
@@ -157,6 +161,7 @@ class NewRoundView(APIView):
                         game.team2.player4, game.team2.player5, game.team2.player6
                     ]:
                         player_stats.cups_made += 1
+                        teamB_cup_hitters.append(player)
                     else:
                         player_stats.own_cups += 1
                 elif int(cup) > 78:
@@ -166,6 +171,7 @@ class NewRoundView(APIView):
                         game.team1.player4, game.team1.player5, game.team1.player6
                     ]:
                         player_stats.cups_made += 1
+                        teamA_cup_hitters.append(player)
                     else:
                         player_stats.own_cups += 1
 
@@ -173,6 +179,32 @@ class NewRoundView(APIView):
 
             except User.DoesNotExist:
                 continue  # Ignore invalid player IDs
+            
+        # Check for clutch shots
+        if len(teamA_cup_hitters) == 1:
+            solo_shooter = teamA_cup_hitters[0]
+            solo_shooter_stats = PlayerStats.objects.get(player=solo_shooter, game=game)
+            solo_shooter_stats.clutch_cups += 1
+            solo_shooter_stats.save()
+            
+        if len(teamB_cup_hitters) == 1:
+            solo_shooter = teamB_cup_hitters[0]
+            solo_shooter_stats = PlayerStats.objects.get(player=solo_shooter, game=game)
+            solo_shooter_stats.clutch_cups += 1
+            solo_shooter_stats.save()
+            
+        # Check for death cup
+        if deathcups:
+            for player_id in deathcups:
+                try:
+                    player = User.objects.get(pk=player_id)
+                    player_stats, _ = PlayerStats.objects.get_or_create(player=player, game=game)
+                    player_stats.death_cups += 1
+                    player_stats.save()
+                except User.DoesNotExist:
+                    continue
+            
+        
 
         # Create a new round record
         new_round = Round.objects.create(
