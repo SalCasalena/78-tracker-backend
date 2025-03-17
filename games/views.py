@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.db import transaction
 from .models import User, Team, Game, Round, PlayerStats
-from .serializers import GameStateSerializer, RoundSerializer
+from .serializers import GameStateSerializer, RoundResponseSerializer
 from rest_framework.exceptions import ValidationError
 
 class GameStateView(APIView):
@@ -112,7 +112,7 @@ class NewRoundView(APIView):
             return Response({"error": "Cup data is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         # **Check for duplicate cups already hit**
-        existing_cups = game.cups  # The current game state dictionary
+        existing_cups = game.cups
         duplicate_cups = [cup for cup in cups.keys() if cup in existing_cups and existing_cups[cup] != ""]
 
         if duplicate_cups:
@@ -126,16 +126,53 @@ class NewRoundView(APIView):
         next_round_number = last_round.round_number + 1 if last_round else 1  # Start from 1 if no rounds exist
 
         # **Append New Cup Hits to Game State**
-        updated_cups = game.cups.copy()  # Preserve old data
-        updated_cups.update(cups)  # Append new hits
-        game.cups = updated_cups  # Store updated state
+        updated_cups = game.cups.copy()
+        updated_cups.update(cups)
+        game.cups = updated_cups
 
-        game.save()  # Triggers `save()` method to update stats
-        
-        # Here lets process indiual stats for each player
-    
-        
-        
+        # **Ensure PlayerStats exists for all players**
+        all_players = [
+            game.team1.player1, game.team1.player2, game.team1.player3,
+            game.team1.player4, game.team1.player5, game.team1.player6,
+            game.team2.player1, game.team2.player2, game.team2.player3,
+            game.team2.player4, game.team2.player5, game.team2.player6
+        ]
+        all_players = [player for player in all_players if player is not None]
+
+        for player in all_players:
+            player_stats, _ = PlayerStats.objects.get_or_create(player=player, game=game)
+            player_stats.shots_taken += 1
+            player_stats.save()
+
+        # **Process Individual Player Stats (Only If They Hit a Cup)**
+        for cup, player_id in cups.items():
+            try:
+                player = User.objects.get(pk=player_id)
+                player_stats, _ = PlayerStats.objects.get_or_create(player=player, game=game)
+
+                if int(cup) < 79:
+                    # Cup belongs to Team A, so the shooter must be on Team B
+                    if player in [
+                        game.team2.player1, game.team2.player2, game.team2.player3,
+                        game.team2.player4, game.team2.player5, game.team2.player6
+                    ]:
+                        player_stats.cups_made += 1
+                    else:
+                        player_stats.own_cups += 1
+                elif int(cup) > 78:
+                    # Cup belongs to Team B, so the shooter must be on Team A
+                    if player in [
+                        game.team1.player1, game.team1.player2, game.team1.player3,
+                        game.team1.player4, game.team1.player5, game.team1.player6
+                    ]:
+                        player_stats.cups_made += 1
+                    else:
+                        player_stats.own_cups += 1
+
+                player_stats.save()
+
+            except User.DoesNotExist:
+                continue  # Ignore invalid player IDs
 
         # Create a new round record
         new_round = Round.objects.create(
@@ -146,17 +183,9 @@ class NewRoundView(APIView):
             teamB_rack_status=game.teamB_rack_status
         )
 
-        # **Build Response Data**
-        response_data = {
-            "message": "Round successfully recorded",
-            "round_number": new_round.round_number,
-            "cups": game.cups,  # Full cup state
-            "teamA_cups_made": game.teamA_cups_made,
-            "teamB_cups_made": game.teamB_cups_made,
-            "teamA_cups_remaining": game.teamA_cups_remaining,
-            "teamB_cups_remaining": game.teamB_cups_remaining,
-            "teamA_rack_status": game.teamA_rack_status,
-            "teamB_rack_status": game.teamB_rack_status
-        }
+        # Save the updated game state
+        game.save()
 
-        return Response(response_data, status=status.HTTP_201_CREATED)
+        # **Use Serializer to Build Response Data**
+        serializer = RoundResponseSerializer(new_round)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)

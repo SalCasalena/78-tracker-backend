@@ -104,7 +104,6 @@ class Round(models.Model):
     def __str__(self):
         return f"Round {self.round_number} of {self.game}"
 
-
 class PlayerStats(models.Model):
     player = models.ForeignKey(User, on_delete=models.CASCADE, related_name="player_stats")
     game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name="game_stats")
@@ -114,6 +113,9 @@ class PlayerStats(models.Model):
     cups_made = models.IntegerField(default=0)
     own_cups = models.IntegerField(default=0)  # Own team's cups mistakenly hit
     accuracy = models.FloatField(default=0.0)
+    
+    death_cups = models.IntegerField(default=0)
+    clutch_cups = models.IntegerField(default=0)
 
     class Meta:
         unique_together = ('player', 'game')  # Prevents duplicate player stats per game
@@ -125,30 +127,3 @@ class PlayerStats(models.Model):
 
     def __str__(self):
         return f"{self.player.username}[{self.pk}] [Game: {self.game.id}] {self.cups_made} | {self.shots_taken} | {self.accuracy}%"
-
-    player = models.ForeignKey(User, on_delete=models.CASCADE, related_name="player_stats")
-    game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name="game_stats")
-    
-    # Individual Player Statistics
-    shots_taken = models.IntegerField(default=0)
-    cups_made = models.IntegerField(default=0)
-    accuracy = models.IntegerField(default=0)
-    death_cups = models.IntegerField(default=0)
-    clutch_cups = models.IntegerField(default=0)
-    own_cups = models.IntegerField(default=0)
-    
-
-    class Meta:
-        unique_together = ('player', 'game')  # Prevents duplicate player stats per game
-
-    def __str__(self):
-        return f"{self.player.username}[{self.pk}] [Game: {self.game.id}] {self.cups_made} | {self.shots_taken} | {self.accuracy}%"
-
-    def save(self, *args, **kwargs):
-        """Auto-calculates accuracy before saving."""
-        if self.shots_taken > 0:
-            self.accuracy = (self.cups_made / self.shots_taken) * 100
-        else:
-            self.accuracy = 0.0  # Prevent division by zero
-        
-        super().save(*args, **kwargs)  # Call the original save method
