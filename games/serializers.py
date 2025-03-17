@@ -11,11 +11,15 @@ class GameListSerializer(serializers.ModelSerializer):
     team1_name = serializers.CharField(source="team1.team_name")
     team2_name = serializers.CharField(source="team2.team_name")
     date = serializers.DateTimeField(source="created_at" ,format="%Y-%m-%d %H:%M:%S")
-    winner = serializers.CharField(source="winner.team_name")
+    winner = serializers.SerializerMethodField()
 
     class Meta:
         model = Game
         fields = ["id", "date", "status", "team1_name", "team2_name", "winner"]
+    
+    def get_winner(self, obj):
+        """Safely return the winner's team name or 'TBD' if no winner yet."""
+        return obj.winner.team_name if obj.winner else "TBD"
 
 
 class GameStateSerializer(serializers.ModelSerializer):
